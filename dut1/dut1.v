@@ -92,6 +92,8 @@ module dut1(tck,tdi,tdo,tms,trstn,
   //****************************************************************
 
   reg [31:0] ctrl;  // Address 0
+  reg [31:0] cmd;  // Address 4
+  reg [31:0] data_out;  // Address 0xC
 
   always @ (negedge tck or negedge rstn) begin
     if (rstn == 0)
@@ -106,7 +108,7 @@ module dut1(tck,tdi,tdo,tms,trstn,
   assign count_reset = ctrl[1];
   assign count_clk = tck && count_en;
 
-  reg [31:0] cmd;  // Address 4
+  // CMD register
 
   always @ (negedge tck or negedge rstn) begin
     if (rstn == 0)
@@ -117,7 +119,33 @@ module dut1(tck,tdi,tdo,tms,trstn,
       cmd[31:0] <= cmd[31:0];
   end
 
-  reg [31:0] data_out;  // Address 0xC
+  // Some nonsense to create some pin pseudo random output for us to capture
+  // based on the value on din whenever a certain command code is written
+  integer i;
+  always @ (negedge tck) begin
+    if (cmd == 32'h55)
+      begin
+        cmd[31] <= 1;
+        i = 0;
+      end
+    else if (cmd == 32'h8000_0055)
+      begin
+        if (i == 50)
+          cmd[31:0] <= 0;
+        else
+          begin
+            if (i == 0)
+              data_out[31:0] <= din[31:0];
+            else if (i == 50)
+              cmd[31:0] <= 0;
+            else
+              data_out[31:0] <= ({data_out[30:0], 1'b0} ^ data_out[31:0]);
+            i = i + 1;
+          end
+      end
+  end
+
+  // Data out register
 
   always @ (negedge tck or negedge rstn) begin
     if (rstn == 0)
