@@ -115,20 +115,20 @@ module dut1(tck,tdi,tdo,tms,trstn,
       cmd[31:0] <= 32'b0;
     else if (write_register && address == 32'h4)
       cmd[31:0] <= data;
-    else
-      cmd[31:0] <= cmd[31:0];
   end
 
   // Some nonsense to create some pin pseudo random output for us to capture
   // based on the value on din whenever a certain command code is written
-  integer i;
+  reg [31:0] i;
   always @ (negedge tck) begin
     if (cmd == 32'h55)
       begin
-        cmd[31] <= 1;
-        i = 0;
+        cmd[31] <= 32'h8000_0055;
+        i <= 0;
       end
-    else if (cmd == 32'h8000_0055)
+  end
+  always @ (negedge tck) begin
+    if (cmd == 32'h8000_0055)
       begin
         if (i == 50)
           cmd[31:0] <= 0;
@@ -140,7 +140,7 @@ module dut1(tck,tdi,tdo,tms,trstn,
               cmd[31:0] <= 0;
             else
               data_out[31:0] <= ({data_out[30:0], 1'b0} ^ data_out[31:0]);
-            i = i + 1;
+            i <= i + 1;
           end
       end
   end
@@ -152,8 +152,6 @@ module dut1(tck,tdi,tdo,tms,trstn,
       data_out[31:0] <= 32'b0;
     else if (write_register && address == 32'hC)
       data_out[31:0] <= data;
-    else
-      data_out[31:0] <= data_out[31:0];
   end
 
   assign dout = data_out;
@@ -172,8 +170,6 @@ module dut1(tck,tdi,tdo,tms,trstn,
       dr[31:0] <= din[31:0];
     else if (read_register && address == 32'h14)
       dr[31:0] <= {24'b0, p4[3:0], p3[3:0], p2, p1};
-    else
-      dr[31:0] <= dr[31:0];
   end
 
 endmodule
