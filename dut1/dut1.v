@@ -87,6 +87,14 @@ module dut1(tck,tdi,tdo,tms,trstn,
   assign write_register = update_dr && debugger_en && !read_en && rw_en;
   assign read_register = capture_dr && debugger_en && read_en && rw_en;
 
+  // Done pin
+  reg done_bit;
+  assign done = done_bit;
+
+  always @ (negedge rstn) begin
+    done_bit <= 1;
+  end
+
   //****************************************************************
   // DEVICE REGISTERS
   //****************************************************************
@@ -142,6 +150,26 @@ module dut1(tck,tdi,tdo,tms,trstn,
               data_out[31:0] <= ({data_out[30:0], 1'b0} ^ data_out[31:0]);
             i <= i + 1;
           end
+      end
+  end
+
+  // Emulate a command running by taking the done pin low for a while and then
+  // put it high, this is used for testing match loops
+  always @ (negedge tck) begin
+    if (cmd == 32'h75)
+      begin
+        cmd[31] <= 32'h8000_0075;
+        i <= 1000;
+        done_bit <= 0;
+      end
+  end
+  always @ (negedge tck) begin
+    if (cmd == 32'h8000_0075)
+      begin
+        if (i > 0)
+          i <= i - 1;
+        else
+          done_bit <= 1;
       end
   end
 
