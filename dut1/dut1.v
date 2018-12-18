@@ -1,5 +1,6 @@
 `include "tap_top.v"
 `include "counter.v"
+`include "ip.v"
 
 module dut1(tck,tdi,tdo,tms,trstn,
             rstn,
@@ -25,8 +26,12 @@ module dut1(tck,tdi,tdo,tms,trstn,
   wire [31:0] count;
   wire shift_dr;
   wire debugger_en;
+  wire ip1_en;
+  wire ip2_en;
   wire tdi_o;
   wire debug_tdo_i;
+  wire ip1_tdo_i;
+  wire ip2_tdo_i;
   wire capture_dr;
   wire update_dr;
   wire [31:0] address;
@@ -49,8 +54,12 @@ module dut1(tck,tdi,tdo,tms,trstn,
     .trstn_pad_i(trstn & rstn),
     .shift_dr_o(shift_dr),
     .debug_select_o(debugger_en),
+    .ip1_select_o(ip1_en),
+    .ip2_select_o(ip2_en),
     .tdi_o(tdi_o),
     .debug_tdo_i(debug_tdo_i),
+    .ip1_tdo_i(ip1_tdo_i),
+    .ip2_tdo_i(ip2_tdo_i),
     .update_dr_o(update_dr),
     .capture_dr_o(capture_dr)
   );
@@ -59,6 +68,40 @@ module dut1(tck,tdi,tdo,tms,trstn,
     .clock(count_clk),
     .reset(count_reset),
     .count(count)
+  );
+
+  wire ip1_shift;
+  wire ip1_update;
+  wire ip1_capture;
+  assign ip1_shift = shift_dr && ip1_en;
+  assign ip1_update = update_dr && ip1_en;
+  assign ip1_capture = capture_dr && ip1_en;
+
+  ip ip1 (
+    .tdi(tdi_o),
+    .shift(ip1_shift),
+    .update(ip1_update),
+    .capture(ip1_capture),
+    .tck(tck),
+    .reset_n(rstn),
+    .tdo(ip1_tdo_i)
+  );
+
+  wire ip2_shift;
+  wire ip2_update;
+  wire ip2_capture;
+  assign ip2_shift = shift_dr && ip2_en;
+  assign ip2_update = update_dr && ip2_en;
+  assign ip2_capture = capture_dr && ip2_en;
+
+  ip ip2 (
+    .tdi(tdi_o),
+    .shift(ip2_shift),
+    .update(ip2_update),
+    .capture(ip2_capture),
+    .tck(tck),
+    .reset_n(rstn),
+    .tdo(ip2_tdo_i)
   );
 
   //****************************************************************

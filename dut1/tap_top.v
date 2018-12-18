@@ -89,12 +89,16 @@ module tap_top(
  
                 // Select signals for sub-modules
                 debug_select_o, // enable debug module
+                ip1_select_o,   // enable IP1 module
+                ip2_select_o,   // enable IP2 module
  
                 // TDO signal that is connected to TDI of sub-modules.
                 tdi_o, 
  
                 // TDI signals from sub-modules
-                debug_tdo_i    // from debug module
+                debug_tdo_i,   // from debug module
+                ip1_tdo_i,     // from IP1 module
+                ip2_tdo_i      // from IP2 module
               );
  
  
@@ -116,12 +120,16 @@ output  capture_dr_o;
  
 // Select signals for boundary scan or mbist
 output  debug_select_o;
+output  ip1_select_o;
+output  ip2_select_o;
  
 // TDO signal that is connected to TDI of sub-modules.
 output  tdi_o;
  
 // TDI signals from sub-modules
 input   debug_tdo_i;    // from debug module
+input   ip1_tdo_i;
+input   ip2_tdo_i;
  
 // Wires which depend on the state of the TAP FSM
 reg     test_logic_reset;
@@ -145,6 +153,8 @@ reg     update_ir;
 reg     idcode_select;
 reg     debug_select;
 reg     bypass_select;
+reg     ip1_select;
+reg     ip2_select;
  
 // TDO and enable
 reg     tdo_pad_o;
@@ -160,6 +170,8 @@ assign update_dr_o = update_dr;
 assign capture_dr_o = capture_dr;
  
 assign debug_select_o = debug_select;
+assign ip1_select_o = ip1_select;
+assign ip2_select_o = ip2_select;
  
  
 /**********************************************************************************
@@ -450,10 +462,14 @@ begin
   idcode_select           = 1'b0;
   debug_select            = 1'b0;
   bypass_select           = 1'b0;
+  ip1_select              = 1'b0;
+  ip2_select              = 1'b0;
  
   case(latched_jtag_ir)    /* synthesis parallel_case */ 
     `IDCODE:            idcode_select           = 1'b1;    // ID Code
     `DEBUG:             debug_select            = 1'b1;    // Debug
+    `IP1:               ip1_select              = 1'b1;
+    `IP2:               ip2_select              = 1'b1;
     default:            bypass_select           = 1'b1;    // BYPASS
   endcase
 end
@@ -467,7 +483,7 @@ end
 reg tdo_mux_out;  // really just a wire
  
 always @ (shift_ir or instruction_tdo or latched_jtag_ir or idcode_tdo or
-          debug_tdo_i or bypassed_tdo)
+          debug_tdo_i or bypassed_tdo or ip1_tdo_i or ip2_tdo_i)
 begin
   if(shift_ir)
     tdo_mux_out = instruction_tdo;
@@ -476,6 +492,8 @@ begin
       case(latched_jtag_ir)    // synthesis parallel_case
         `IDCODE:            tdo_mux_out = idcode_tdo;       // Reading ID code
         `DEBUG:             tdo_mux_out = debug_tdo_i;      // Debug
+        `IP1:               tdo_mux_out = ip1_tdo_i;
+        `IP2:               tdo_mux_out = ip2_tdo_i;
         default:            tdo_mux_out = bypassed_tdo;     // BYPASS instruction
       endcase
     end

@@ -72,3 +72,5 @@
 // Supported Instructions
 `define IDCODE          4'b0010
 `define DEBUG           4'b1000
+`define IP1             4'b0101
+`define IP2             4'b0110
