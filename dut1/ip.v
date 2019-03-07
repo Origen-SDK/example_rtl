@@ -29,6 +29,7 @@ module ip(
   wire read;
   wire [15:0] address;
   wire [31:0] data;
+  wire busy, fail, error;
 
   assign tdo = dr[0];
   assign address[15:0] = dr[47:32];
@@ -52,7 +53,9 @@ module ip(
   end
 
   // User regs
-  reg [31:0] cmd;  // Address 0
+  reg [31:0] cmd;       // Address 0
+  reg [31:0] status;    // Address 4
+  reg [31:0] data_reg;  // Address 8
 
   always @ (negedge tck or negedge reset_n) begin
     if (reset_n == 0)
@@ -66,10 +69,6 @@ module ip(
     else if (read && address == 16'h0)
       dr[31:0] <= cmd[31:0];
   end
-
-  reg [31:0] status;  // Address 4
-
-  wire busy, fail, error;
 
   assign busy = status[0];
   assign fail = status[1];
@@ -96,8 +95,6 @@ module ip(
   always @ (posedge reset_n) begin
     status[31:0] <= 32'b0;   // Clear busy bit
   end
-
-  reg [31:0] data_reg;  // Address 4
 
   always @ (negedge tck or negedge reset_n) begin
     if (reset_n == 0)
