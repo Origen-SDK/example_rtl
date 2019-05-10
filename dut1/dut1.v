@@ -7,7 +7,8 @@ module dut1(tck,tdi,tdo,tms,trstn,
             done,
             test_bus,
             din, dout,
-            p1, p2, p3, p4
+            p1, p2, p3, p4,
+            vdd, ana
           );
 
   input tck, tdi, tms, trstn;
@@ -17,11 +18,13 @@ module dut1(tck,tdi,tdo,tms,trstn,
   input p2;
   input [3:0] p3;
   input [3:0] p4;
+  inout vdd;
 
   output tdo;
   output done;
   output [15:0] test_bus;
   output [31:0] dout;
+  output ana;
 
   wire [31:0] count;
   wire shift_dr;
@@ -41,7 +44,25 @@ module dut1(tck,tdi,tdo,tms,trstn,
   wire count_clk;
   wire count_en;
   wire count_reset;
+  wire vdd_valid;
 
+  // Used to test poking and peeking a real value
+  real real_val;
+
+  `ifdef ORIGEN_WREAL
+  `ifdef __ICARUS__
+  wire real vdd;
+  wire real ana;
+  `else
+  wreal vdd;
+  wreal ana;
+  `endif
+  assign vdd_valid = (vdd >= 1.1) ? 1 : 0;
+  assign ana = vdd * 0.25;
+  `else
+  assign vdd_valid = vdd;
+  assign ana = vdd;
+  `endif
   // Used for testing peek and poke methods
   reg [15:0] test_data;
   assign test_bus = test_data;
