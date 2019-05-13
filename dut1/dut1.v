@@ -50,13 +50,8 @@ module dut1(tck,tdi,tdo,tms,trstn,
   real real_val;
 
   `ifdef ORIGEN_WREAL
-  `ifdef __ICARUS__
-  wire real vdd;
-  wire real ana;
-  `else
   wreal vdd;
   wreal ana;
-  `endif
   assign vdd_valid = (vdd >= 1.1) ? 1 : 0;
   assign ana = vdd * 0.25;
   `else
