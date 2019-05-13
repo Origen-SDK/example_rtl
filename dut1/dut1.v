@@ -60,6 +60,8 @@ module dut1(tck,tdi,tdo,tms,trstn,
   assign vdd_valid = (vdd >= 1.1) ? 1 : 0;
   assign ana = vdd * 0.25;
   `else
+  wire vdd;
+  wire ana;
   assign vdd_valid = vdd;
   assign ana = vdd;
   `endif
