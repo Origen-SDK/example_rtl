@@ -44,22 +44,13 @@ module dut1(tck,tdi,tdo,tms,trstn,
   wire count_clk;
   wire count_en;
   wire count_reset;
-  wire vdd_valid;
 
   // Used to test poking and peeking a real value
   real real_val;
 
-  `ifdef ORIGEN_WREAL
-  wreal vdd;
-  wreal ana;
-  assign vdd_valid = (vdd >= 1.1) ? 1 : 0;
-  assign ana = vdd * 0.25;
-  `else
-  wire vdd;
-  wire ana;
-  assign vdd_valid = vdd;
-  assign ana = vdd;
-  `endif
+  // Used to test poking and peeking a memory
+  reg[31:0] ram[0:127];  // 128 32-bit words
+
   // Used for testing peek and poke methods
   reg [15:0] test_data;
   assign test_bus = test_data;
@@ -157,6 +148,18 @@ module dut1(tck,tdi,tdo,tms,trstn,
   end
 
   //****************************************************************
+  // DEVICE RAM
+  //****************************************************************
+
+  always @ (negedge tck or negedge rstn) begin
+    if (write_register && address[31] == 1'b1)
+      ram[address[30:0]] <= data;
+    else if (read_register && address[31] == 1'b1)
+      dr[31:0] <= ram[address[30:0]];
+  end
+
+
+  //****************************************************************
   // DEVICE REGISTERS
   //****************************************************************
 
@@ -245,6 +248,70 @@ module dut1(tck,tdi,tdo,tms,trstn,
 
   assign dout = data_out;
 
+  // Analog test register
+
+  reg osc_out;
+  reg bgap_out;
+  reg vdd_div4;
+  wire vdd_valid;
+
+  `ifdef ORIGEN_WREAL
+  wreal vdd;
+  wreal ana;
+  real osc;
+
+  assign vdd_valid = (vdd >= 1.1) ? 1 : 0;
+
+  reg [7:0] sine1,cos1;
+  reg [7:0] sine2, cos2;
+  always @ (posedge tck or negedge rstn) begin
+    if (rstn == 0 || vdd_valid != 1) begin
+      sine2 <= 0;
+      cos2 <= 120;
+    end else begin
+      sine2 <= sine1;
+      cos2 <= cos1;
+    end
+  end
+
+  always @* begin
+    sine1 = sine2 + {cos2[7], cos2[7], cos2[7], cos2[7:3]};
+    cos1  = cos2 - {sine1[7], sine1[7], sine1[7], sine1[7:3]};
+    osc = (sine1[7] == 0 ? sine1[6:0] + 120 : sine1[6:0]) / 200.0;
+  end
+
+  assign ana = ana_mux(vdd, osc, bgap_out, osc_out, vdd_div4);
+
+  function real ana_mux(input real vdd, input real osc, input reg bgap_out, input reg osc_out, input reg vdd_div4);
+    if (vdd_div4 == 1'b1)
+      ana_mux = vdd / 4;
+    else if (bgap_out == 1'b1)
+      ana_mux = 1.25;
+    else if (osc_out == 1'b1)
+      ana_mux = osc;
+    else
+      ana_mux = `wrealZState;
+  endfunction
+
+  `else
+  wire vdd;
+  wire ana;
+  assign vdd_valid = vdd;
+  assign ana = vdd;
+  `endif
+
+  always @ (negedge tck or negedge rstn) begin
+    if (rstn == 0) begin
+      osc_out  <= 1'b0;
+      bgap_out <= 1'b0;
+      vdd_div4 <= 1'b0;
+    end else if (write_register && address == 32'h1C) begin
+      bgap_out <= data[1];
+      osc_out  <= data[2];
+      vdd_div4 <= data[3];
+    end
+  end
+
   // Read regs
   always @ (negedge tck) begin
     if (read_register && address == 32'b0)
@@ -259,6 +326,8 @@ module dut1(tck,tdi,tdo,tms,trstn,
       dr[31:0] <= din[31:0];
     else if (read_register && address == 32'h14)
       dr[31:0] <= {24'b0, p4[3:0], p3[3:0], p2, p1};
+    else if (read_register && address == 32'h1C)
+      dr[31:0] <= {29'b0, osc_out, bgap_out, vdd_valid};
   end
 
 endmodule
