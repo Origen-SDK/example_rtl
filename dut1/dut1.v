@@ -52,6 +52,15 @@ module dut1(tck,tdi,tdo,tms,trstn,
   reg[31:0] mem[0:7];  // 8 32-bit words
   reg[136:0] wide_mem[0:7];  // 8 137-bit words
 
+  `ifdef __ICARUS__
+     // Required to dump the memories to the waves for this simulator
+     integer imem;
+     initial begin
+       for (imem = 0; imem < 8; imem = imem + 1) $dumpvars(0, mem[imem]);
+       for (imem = 0; imem < 8; imem = imem + 1) $dumpvars(0, wide_mem[imem]);
+     end
+  `endif
+
   // Used for testing peek and poke methods
   reg [15:0] test_data;
   assign test_bus = test_data;
