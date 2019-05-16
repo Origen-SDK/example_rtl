@@ -49,7 +49,8 @@ module dut1(tck,tdi,tdo,tms,trstn,
   real real_val;
 
   // Used to test poking and peeking a memory
-  reg[31:0] ram[0:127];  // 128 32-bit words
+  reg[31:0] mem[0:7];  // 8 32-bit words
+  reg[136:0] wide_mem[0:7];  // 8 137-bit words
 
   // Used for testing peek and poke methods
   reg [15:0] test_data;
@@ -138,6 +139,10 @@ module dut1(tck,tdi,tdo,tms,trstn,
   assign debug_tdo_i = dr[0];
   assign write_register = update_dr && debugger_en && !read_en && rw_en;
   assign read_register = capture_dr && debugger_en && read_en && rw_en;
+  assign write_mem = write_register && address[31:28] == 1;
+  assign read_mem = read_register && address[31:28] == 1;
+  assign write_wide_mem = write_register && address[31:28] == 2;
+  assign read_wide_mem = read_register && address[31:28] == 2;
 
   // Done pin
   reg done_bit;
@@ -148,16 +153,15 @@ module dut1(tck,tdi,tdo,tms,trstn,
   end
 
   //****************************************************************
-  // DEVICE RAM
+  // DEVICE MEMORIES
   //****************************************************************
 
   always @ (negedge tck or negedge rstn) begin
-    if (write_register && address[31] == 1'b1)
-      ram[address[30:0]] <= data;
-    else if (read_register && address[31] == 1'b1)
-      dr[31:0] <= ram[address[30:0]];
+    if (write_mem)
+      mem[address[27:0] >> 2] <= data;
+    else if (read_mem)
+      dr[31:0] <= mem[address[27:0] >> 2];
   end
-
 
   //****************************************************************
   // DEVICE REGISTERS
@@ -313,6 +317,9 @@ module dut1(tck,tdi,tdo,tms,trstn,
   end
 
   // Read regs
+  // Reg which is used to test the reporting of reading a register value which returns X
+  reg [31:0] x_reg;
+
   always @ (negedge tck) begin
     if (read_register && address == 32'b0)
       dr[31:0] <= ctrl[31:0];
@@ -328,6 +335,8 @@ module dut1(tck,tdi,tdo,tms,trstn,
       dr[31:0] <= {24'b0, p4[3:0], p3[3:0], p2, p1};
     else if (read_register && address == 32'h1C)
       dr[31:0] <= {29'b0, osc_out, bgap_out, vdd_valid};
+    else if (read_register && address == 32'h20)
+      dr[31:0] <= x_reg[31:0];
   end
 
 endmodule
