@@ -8,7 +8,7 @@ module dut1(tck,tdi,tdo,tms,trstn,
             test_bus,
             din, dout,
             p1, p2, p3, p4,
-            vdd, ana
+            vdd, ana, osc
           );
 
   input tck, tdi, tms, trstn;
@@ -18,6 +18,7 @@ module dut1(tck,tdi,tdo,tms,trstn,
   input p2;
   input [3:0] p3;
   input [3:0] p4;
+  input osc;
   inout vdd;
 
   output tdo;
